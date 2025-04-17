@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Validator - Hackathon Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        'secondary': {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            200: '#f5d0fe',
+                            300: '#f0abfc',
+                            400: '#e879f9',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            900: '#701a75',
+                        },
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s ease infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': {
+                                'background-position': '0% 50%'
+                            },
+                            '50%': {
+                                'background-position': '100% 50%'
+                            },
+                        }
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Dark mode styles */
+        .dark {
+            color-scheme: dark;
+        }
+
+        .dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+
+        .dark .text-gray-800 {
+            color: #f3f4f6 !important;
+        }
+
+        .dark .text-gray-700 {
+            color: #e5e7eb !important;
+        }
+
+        .dark .text-gray-600 {
+            color: #d1d5db !important;
+        }
+
+        .dark .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+
+        .dark input, .dark select, .dark textarea {
+            background-color: #374151 !important;
+            color: #f3f4f6 !important;
+        }
+
+        .dark .text-gray-400 {
+            color: #9ca3af !important;
+        }
+
+        .dark .bg-green-100 {
+            background-color: rgba(6, 78, 59, 0.5) !important;
+        }
+
+        .dark .bg-red-100 {
+            background-color: rgba(127, 29, 29, 0.5) !important;
+        }
+
+        .dark .text-green-800 {
+            color: #a7f3d0 !important;
+        }
+
+        .dark .text-red-800 {
+            color: #fecaca !important;
+        }
+
+        .dark .bg-white\/10 {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* Card and animation styles */
+        .credit-card {
+            perspective: 1000px;
+        }
+        .credit-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .credit-card-front, .credit-card-back {
+            backface-visibility: hidden;
+        }
+        .credit-card-back {
+            transform: rotateY(180deg);
+        }
+        .gradient-bg {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        .dark .gradient-bg {
+            background: linear-gradient(-45deg, #1e3a8a, #5b21b6, #0f766e, #1e40af);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        .chip {
+            background: linear-gradient(135deg, #ffd700 0%, #ffcc00 50%, #cca300 100%);
+        }
+
+        /* Dark mode toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.2);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-toggle i {
+            font-size: 1.5rem;
+            color: white;
+        }
+    </style>
+    <script>
+        // Credit card validation function
+        function validateCreditCard(number) {
+            // Remove any spaces or dashes
+            const cleanNumber = number.replace(/[\s-]/g, '');
+
+            // Check if it's 16 digits and all are numbers
+            if (!/^\d{16}$/.test(cleanNumber)) {
+                return { valid: false, message: 'Card number must be 16 digits' };
+            }
+
+            // Check if there are at least two different digits
+            const uniqueDigits = new Set(cleanNumber.split(''));
+            if (uniqueDigits.size < 2) {
+                return { valid: false, message: 'Card must have at least two different digits' };
+            }
+
+            // Check if the final digit is even
+            const lastDigit = parseInt(cleanNumber.charAt(15));
+            if (lastDigit % 2 !== 0) {
+                return { valid: false, message: 'Final digit must be even' };
+            }
+
+            // Check if the sum of all digits is greater than 16
+            const sum = cleanNumber.split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+            if (sum <= 16) {
+                return { valid: false, message: 'Sum of all digits must be greater than 16' };
+            }
+
+            return { valid: true, message: 'Credit card is valid' };
+        }
+
+        // Expiry date validation function (extra feature)
+        function validateExpiryDate(date) {
+            // Check format MM/YY
+            if (!/^\d{2}\/\d{2}$/.test(date)) {
+                return { valid: false, message: 'Expiry date must be in MM/YY format' };
+            }
+
+            const [month, year] = date.split('/');
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear() % 100; // Get last two digits of year
+            const currentMonth = currentDate.getMonth() + 1; // January is 0
+
+            // Convert to numbers
+            const monthNum = parseInt(month);
+            const yearNum = parseInt(year);
+
+            // Check if month is valid (1-12)
+            if (monthNum < 1 || monthNum > 12) {
+                return { valid: false, message: 'Month must be between 1 and 12' };
+            }
+
+            // Check if the card is expired
+            if (yearNum < currentYear || (yearNum === currentYear && monthNum < currentMonth)) {
+                return { valid: false, message: 'Card is expired' };
+            }
+
+            return { valid: true, message: 'Expiry date is valid' };
+        }
+
+        // Format credit card number with spaces for better readability
+        function formatCardNumber(value) {
+            const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            const matches = v.match(/\d{4,16}/g);
+            const match = matches && matches[0] || '';
+            const parts = [];
+
+            for (let i = 0, len = match.length; i < len; i += 4) {
+                parts.push(match.substring(i, i + 4));
+            }
+
+            if (parts.length) {
+                return parts.join(' ');
+            } else {
+                return value;
+            }
+        }
+
+        function handleCardNumberInput(event) {
+            const input = event.target;
+            input.value = formatCardNumber(input.value);
+        }
+
+        function handleExpiryDateInput(event) {
+            const input = event.target;
+            let value = input.value;
+
+            // Remove any non-digit characters except for the slash
+            value = value.replace(/[^\d\/]/g, '');
+
+            // Add slash after 2 digits if not already there
+            if (value.length === 2 && !value.includes('/')) {
+                value += '/';
+            }
+
+            // Limit to 5 characters (MM/YY)
+            if (value.length <= 5) {
+                input.value = value;
+            }
+        }
+
+        function validateCard() {
+            const cardHolder = document.getElementById('cardHolder').value;
+            const cardNumber = document.getElementById('cardNumber').value;
+            const expiryDate = document.getElementById('expiryDate').value;
+            const resultDiv = document.getElementById('result');
+
+            // Update card holder display
+            const cardHolderDisplay = document.getElementById('cardHolderDisplay');
+            cardHolderDisplay.textContent = cardHolder.toUpperCase();
+
+            // Validate credit card
+            const cardValidation = validateCreditCard(cardNumber);
+
+            // Validate expiry date if provided
+            let expiryValidation = { valid: true };
+            if (expiryDate) {
+                expiryValidation = validateExpiryDate(expiryDate);
+            }
+
+            // Validate card holder name
+            let cardHolderValidation = { valid: true };
+            if (!cardHolder.trim()) {
+                cardHolderValidation = { valid: false, message: 'Card holder name is required' };
+            }
+
+            // Card is valid only if all validations pass
+            if (cardValidation.valid && expiryValidation.valid && cardHolderValidation.valid) {
+                resultDiv.className = 'mt-6 p-6 rounded-lg bg-green-100 text-green-800 flex items-center';
+                resultDiv.innerHTML = '<i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i><div><p class="font-medium text-lg">Success!</p><p>Your credit card is valid, ' + cardHolder.split(' ')[0] + '.</p></div>';
+
+                // Add animation to the card
+                const cardElement = document.querySelector('.credit-card-inner');
+                cardElement.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5)';
+                setTimeout(() => {
+                    cardElement.style.boxShadow = '';
+                }, 2000);
+            } else {
+                resultDiv.className = 'mt-6 p-6 rounded-lg bg-red-100 text-red-800 flex items-center';
+                let errorMessage = '';
+
+                if (!cardHolderValidation.valid) {
+                    errorMessage = cardHolderValidation.message;
+                } else if (!cardValidation.valid) {
+                    errorMessage = cardValidation.message;
+                } else {
+                    errorMessage = expiryValidation.message;
+                }
+
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle text-red-500 text-2xl mr-3"></i><div><p class="font-medium text-lg">Error!</p><p>' + errorMessage + '</p></div>';
+
+                // Add animation to the card
+                const cardElement = document.querySelector('.credit-card-inner');
+                cardElement.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
+                setTimeout(() => {
+                    cardElement.style.boxShadow = '';
+                }, 2000);
+            }
+
+            resultDiv.classList.remove('hidden');
+            return false; // Prevent form submission
+        }
+    </script>
+</head>
+<body class="min-h-screen font-poppins gradient-bg flex flex-col items-center justify-center p-4">
+    <!-- Dark Mode Toggle -->
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+        <i class="fas fa-moon"></i>
+    </button>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">Credit Card <span class="text-yellow-300">Validator</span></h1>
+            <p class="text-xl text-white/80 max-w-2xl mx-auto">Validate your credit card with our advanced algorithm. Secure, fast, and reliable.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column: Card Preview -->
+            <div class="flex flex-col items-center justify-center">
+                <div class="credit-card w-full max-w-md mb-8">
+                    <div class="credit-card-inner relative w-full h-56 rounded-xl overflow-hidden shadow-2xl">
+                        <!-- Front of the card -->
+                        <div class="credit-card-front absolute inset-0 bg-gradient-to-br from-primary-600 to-secondary-700 p-6 flex flex-col justify-between">
+                            <div class="flex justify-between items-start">
+                                <div class="chip h-10 w-14 rounded-md"></div>
+                                <div class="text-white text-2xl font-bold"><i class="fas fa-wifi rotate-90"></i></div>
+                            </div>
+                            <div class="text-white text-2xl tracking-wider font-medium" id="cardNumberDisplay">•••• •••• •••• ••••</div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-white">
+                                    <div class="text-xs opacity-75">Card Holder</div>
+                                    <div id="cardHolderDisplay">YOUR NAME</div>
+                                </div>
+                                <div class="text-white">
+                                    <div class="text-xs opacity-75">Expires</div>
+                                    <div id="expiryDateDisplay">MM/YY</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation Rules -->
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-xl text-white w-full max-w-md">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center"><i class="fas fa-shield-alt mr-2"></i> Validation Rules</h2>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                            <span>Must be 16 digits, all numbers</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                            <span>At least two different digits</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                            <span>Final digit must be even</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                            <span>Sum of all digits must be greater than 16</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Column: Form -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Validate Your Card</h2>
+
+                    <form onsubmit="return validateCard()" class="space-y-6">
+                        <div>
+                            <label for="cardHolder" class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-user mr-2"></i>Card Holder Name
+                            </label>
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    id="cardHolder"
+                                    oninput="handleCardHolderInput(event)"
+                                    placeholder="Enter your name"
+                                    class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    required
+                                />
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="cardNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-credit-card mr-2"></i>Credit Card Number
+                            </label>
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    id="cardNumber"
+                                    oninput="handleCardNumberInput(event)"
+                                    placeholder="XXXX XXXX XXXX XXXX"
+                                    maxlength="19"
+                                    class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    required
+                                />
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="expiryDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-calendar-alt mr-2"></i>Expiry Date (MM/YY)
+                                </label>
+                                <div class="relative">
+                                    <input
+                                        type="text"
+                                        id="expiryDate"
+                                        oninput="handleExpiryDateInput(event)"
+                                        placeholder="MM/YY"
+                                        maxlength="5"
+                                        class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    />
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="cvv" class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-lock mr-2"></i>CVV
+                                </label>
+                                <div class="relative">
+                                    <input
+                                        type="text"
+                                        id="cvv"
+                                        placeholder="123"
+                                        maxlength="3"
+                                        class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    />
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="w-full bg-gradient-to-r from-primary-600 to-secondary-600 text-white py-3 px-6 rounded-lg hover:from-primary-700 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all font-medium text-lg flex items-center justify-center"
+                        >
+                            <i class="fas fa-shield-alt mr-2"></i> Validate Card
+                        </button>
+                    </form>
+
+                    <div id="result" class="mt-6 p-6 rounded-lg hidden"></div>
+
+                    <div class="mt-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-700">Test Examples</h3>
+                            <div class="flex space-x-2">
+                                <button type="button" onclick="document.getElementById('cardHolder').value='John Smith'; document.getElementById('cardHolderDisplay').textContent='JOHN SMITH'; document.getElementById('cardNumber').value='9999 9999 8888 0000'; document.getElementById('expiryDate').value='12/25'; document.getElementById('cardNumberDisplay').textContent='9999 9999 8888 0000'; document.getElementById('expiryDateDisplay').textContent='12/25';" class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors">Valid</button>
+                                <button type="button" onclick="document.getElementById('cardHolder').value='Jane Doe'; document.getElementById('cardHolderDisplay').textContent='JANE DOE'; document.getElementById('cardNumber').value='4444 4444 4444 4444'; document.getElementById('expiryDate').value='12/25'; document.getElementById('cardNumberDisplay').textContent='4444 4444 4444 4444'; document.getElementById('expiryDateDisplay').textContent='12/25';" class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full hover:bg-red-200 transition-colors">Invalid</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="text-sm font-semibold text-green-600 mb-2 flex items-center">
+                                    <i class="fas fa-check-circle mr-1"></i> Valid Examples
+                                </h4>
+                                <ul class="text-sm space-y-1 text-gray-600">
+                                    <li class="flex items-center"><i class="fas fa-credit-card text-gray-400 mr-2"></i>9999-9999-8888-0000</li>
+                                    <li class="flex items-center"><i class="fas fa-credit-card text-gray-400 mr-2"></i>6666-6666-6666-1666</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h4 class="text-sm font-semibold text-red-600 mb-2 flex items-center">
+                                    <i class="fas fa-times-circle mr-1"></i> Invalid Examples
+                                </h4>
+                                <ul class="text-sm space-y-1 text-gray-600">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-credit-card text-gray-400 mr-2 mt-0.5"></i>
+                                        <span>a923-3211-9c01-1112<br><span class="text-xs text-red-500">(invalid characters)</span></span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-credit-card text-gray-400 mr-2 mt-0.5"></i>
+                                        <span>4444-4444-4444-4444<br><span class="text-xs text-red-500">(only one type of number)</span></span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-12 text-center text-white/70">
+            <p>© 2025 Credit Card Validator | Hackathon Project</p>
+        </div>
+    </div>
+
+    <script>
+        // Function to handle card holder input
+        function handleCardHolderInput(event) {
+            const input = event.target;
+            const display = document.getElementById('cardHolderDisplay');
+
+            // Convert to uppercase for card display
+            if (input.value) {
+                display.textContent = input.value.toUpperCase();
+            } else {
+                display.textContent = 'YOUR NAME';
+            }
+        }
+
+        // Update card display when typing
+        document.getElementById('cardNumber').addEventListener('input', function() {
+            const display = document.getElementById('cardNumberDisplay');
+            if (this.value) {
+                display.textContent = this.value;
+            } else {
+                display.textContent = '•••• •••• •••• ••••';
+            }
+        });
+
+        document.getElementById('expiryDate').addEventListener('input', function() {
+            const display = document.getElementById('expiryDateDisplay');
+            if (this.value) {
+                display.textContent = this.value;
+            } else {
+                display.textContent = 'MM/YY';
+            }
+        });
+
+        // Add event listener for card holder input
+        document.getElementById('cardHolder').addEventListener('input', handleCardHolderInput);
+
+        // Dark mode toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement;
+            const toggleIcon = themeToggle.querySelector('i');
+
+            // Check for saved theme preference or use system preference
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            // Apply the saved theme or system preference
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                htmlElement.classList.add('dark');
+                htmlElement.classList.remove('light');
+                toggleIcon.classList.remove('fa-moon');
+                toggleIcon.classList.add('fa-sun');
+            }
+
+            // Toggle theme when button is clicked
+            themeToggle.addEventListener('click', function() {
+                htmlElement.classList.toggle('dark');
+                htmlElement.classList.toggle('light');
+
+                // Update the icon
+                if (htmlElement.classList.contains('dark')) {
+                    toggleIcon.classList.remove('fa-moon');
+                    toggleIcon.classList.add('fa-sun');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    toggleIcon.classList.remove('fa-sun');
+                    toggleIcon.classList.add('fa-moon');
+                    localStorage.setItem('theme', 'light');
+                }
+
+                // Add a nice animation effect
+                document.body.style.transition = 'background 0.5s ease';
+            });
+        });
+    </script>
+</body>
+</html>
